@@ -53,8 +53,7 @@
   .hero{margin:2px 0 22px}
   .hero .hl{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.18;color:var(--ink)}
   .hero .hl span{color:var(--ember);text-shadow:0 0 22px rgba(245,158,11,.35)}
-  .hero .hs{color:var(--dim);font-size:12.5px;margin-top:10px;max-width:640px;line-height:1.65;
-    border-left:2px solid rgba(245,158,11,.45);padding-left:12px}
+  .hero .hs{color:var(--ember2);font-size:14px;font-weight:600;letter-spacing:.02em;margin-top:9px}
   .verdict{display:flex;align-items:center;gap:18px;padding:18px 20px;border-radius:14px;margin-bottom:18px;
     border:1px solid rgba(239,68,68,.5);background:linear-gradient(90deg,rgba(239,68,68,.12),var(--panel))}
   .verdict .score{font-size:40px;font-weight:800;line-height:1;flex:none;width:100px;height:100px;border-radius:15px;
@@ -89,7 +88,23 @@
   .sechead .n{color:var(--ember2);font-weight:700;margin-left:4px}
   .demo-note{font-size:11px;color:var(--faint);border:1px dashed var(--line);border-radius:9px;padding:11px 13px;margin:14px 0}
 
-  /* Intake wizard */
+  /* Intake wizard — guided walkthrough */
+  .stepper{display:flex;gap:8px;margin:2px 0 14px;flex-wrap:wrap}
+  .step{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--dim);background:var(--panel);
+    border:1px solid var(--line);border-radius:999px;padding:6px 13px}
+  .step b{width:18px;height:18px;border-radius:50%;background:var(--panel2);color:var(--dim);display:grid;
+    place-items:center;font-size:10px;border:1px solid var(--line);font-weight:700}
+  .step.on{color:var(--ember2);border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.08)}
+  .step.on b{background:var(--ember);color:#0b0d10;border-color:var(--ember)}
+  .step.done{color:var(--ok);border-color:rgba(34,197,94,.4)} .step.done b{background:var(--ok);color:#0b0d10;border-color:var(--ok)}
+  .istep{display:none} .istep.active{display:block;animation:fade .25s ease}
+  .frame{font-size:13.5px;color:var(--ink);line-height:1.55;margin:0 0 16px;padding-left:12px;border-left:2px solid var(--ember)}
+  .sechead .hint{text-transform:none;letter-spacing:0;color:var(--dim);font-weight:400;margin-left:8px;font-size:10.5px}
+  .samplenote{font-size:11px;color:var(--ember2);border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.05);
+    border-radius:9px;padding:10px 13px;margin-bottom:16px} .samplenote b{color:var(--ember)}
+  .expander{background:none;border:1px dashed var(--line);color:var(--dim);font-family:var(--mono);font-size:11.5px;
+    padding:8px 13px;border-radius:8px;cursor:pointer;margin-bottom:12px} .expander:hover{border-color:var(--ember);color:var(--ember2)}
+  .navrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;align-items:center}
   .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin-bottom:14px}
   .pchk{display:flex;gap:9px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);
     border-radius:9px;padding:10px 12px;cursor:pointer}
@@ -294,6 +309,13 @@
     .provrow{grid-template-columns:60px 1fr;gap:6px} .provrow .pid{grid-column:2}
     .src{overflow-wrap:anywhere}
     pre.outprev,pre.plan{overflow-wrap:anywhere;word-break:break-word}
+    /* intake walkthrough: thumb-friendly steps + full-width Next/Back actions */
+    .stepper{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none} .stepper::-webkit-scrollbar{display:none}
+    .step{flex:none}
+    .navrow{flex-direction:column-reverse;align-items:stretch}
+    .navrow .btn{width:100%;min-height:46px}
+    .winrow{gap:8px} .winrow input{flex:1;min-width:0}
+    .expander{width:100%}
   }
   @media(max-width:480px){
     .hero .hl{font-size:21px} .hero .hs{font-size:11.5px}
@@ -391,8 +413,7 @@ RENDER.overview = function(){
         ${srcList(xc.sources_traversed)} and walked back to this single origin.</div></div>` : '';
   $('#view-overview').innerHTML = `
     <div class="hero"><div class="hl">An autonomous agent went rogue. <span>Watch the autopsy.</span></div>
-      <div class="hs">An independent, evidence-grade reconstruction of what the agent read, called, changed, and
-        decided — rebuilt from logs the organization already had. No sensors. No agent pre-installed.</div></div>
+      <div class="hs">DFIR for the agentic workforce.</div></div>
     <div class="vhead"><h1>Investigation overview</h1><span class="sub">${esc(D.case.name)}</span></div>
     <div class="verdict"><div class="score">${s.incident_score}</div>
       <div><div class="vband">${esc((s.incident_severity||'').toUpperCase())} INCIDENT</div>
@@ -412,8 +433,9 @@ RENDER.overview = function(){
       <div class="stat"><div class="n">${D.sources.length}</div><div class="l">sources fused</div></div>
     </div>
     <div class="two">
-      <div class="card"><h3>What you're looking at</h3><p>A real reconstruction by the AgentAutopsy engine from
-        <b style="color:var(--ink)">logs an organization already had</b> — no sensors, no agent pre-installed. Use the
+      <div class="card"><h3>What you're looking at</h3><p>An independent, evidence-grade reconstruction by the
+        AgentAutopsy engine of what the agent read, called, changed, and decided — rebuilt from
+        <b style="color:var(--ink)">logs an organization already had</b>, no sensors, no agent pre-installed. Use the
         left nav to walk the investigation: intake the evidence, replay the incident, follow the attack chains across
         sources to a single patient zero, ask the case questions, and verify custody.</p></div>
       <div class="card"><h3>Sources fused</h3><div class="sources">${D.sources.map(x=>`<span class="src"><b>${esc(x.label)}</b> · ${x.events} ev</span>`).join('')}</div></div>
@@ -423,41 +445,88 @@ RENDER.overview = function(){
       real data, so you can operate the tool without a backend.</div>`;
 };
 
-// ---------- Intake wizard (interactive simulation over pre-baked plan) ----------
+// ---------- Intake wizard — guided, stepped walkthrough over the pre-baked plan ----------
+function ikTile(p, on){
+  return `<label class="pchk ${on?'on':''}" data-k="${p.key}"><span class="box">${on?'✓':''}</span>
+    <span><div class="pl">${esc(p.question)}</div><div class="ps">${esc(p.label)}</div></span></label>`;
+}
 RENDER.intake = function(){
   const ik=D.intake||{};
-  const chips=(ik.platforms||[]).map(p=>{
-    const on=(ik.selected||[]).includes(p.key);
-    return `<label class="pchk ${on?'on':''}" data-k="${p.key}"><span class="box">${on?'✓':''}</span>
-      <span><div class="pl">${esc(p.question)}</div><div class="ps">${esc(p.label)}</div></span></label>`;}).join('');
+  const sel=new Set(ik.selected||[]);
+  const plats=ik.platforms||[];
+  const lead=plats.filter(p=>sel.has(p.key));      // flagship platforms — pre-selected, shown first
+  const rest=plats.filter(p=>!sel.has(p.key));      // the rest — behind an expander
+  const win=ik.window||[];
   $('#view-intake').innerHTML = `
-    <div class="vhead"><h1>Intake wizard</h1><span class="sub">answer a few questions — never write a collection script</span></div>
-    <div class="demo-note">◆ Try it: toggle platforms, set a window, then “Generate plan”. This is a guided
-      simulation — it reveals the SAME collection plan the real wizard produced for this incident.</div>
-    <div class="sechead">1 · Which platforms were involved?</div>
-    <div class="pgrid" id="ikGrid">${chips}</div>
-    <div class="winrow"><label>Incident window (UTC):</label>
-      <input id="ikStart" type="date" value="${esc((ik.window||[])[0]||'')}" aria-label="incident start">
-      <span style="color:var(--dim)">→</span>
-      <input id="ikEnd" type="date" value="${esc((ik.window||[])[1]||'')}" aria-label="incident end">
-      <input id="ikSus" value="${esc((ik.suspects||[]).join(', '))}" placeholder="suspect identities (optional)" aria-label="suspects" style="flex:1;min-width:180px">
-      <button class="btn" id="ikGen">Generate plan</button></div>
-    <div id="ikPlan"></div>
-    <div class="sechead">2 · Drop the exports — format auto-detected, validated, ingested</div>
-    <div class="drop">Drag a log export here (simulated) — or pick a sample to see detection:
-      <div class="samplebtns" id="ikSamples"></div></div>
-    <div id="ikVal"></div>
-    <div id="ikCov"></div>`;
-  // platform toggle (visual only)
-  $('#ikGrid').querySelectorAll('.pchk').forEach(el=>el.addEventListener('click',()=>{
+    <div class="vhead"><h1>Intake wizard</h1><span class="sub">guided evidence-acquisition — answer a few questions, never write a collection script</span></div>
+    <div class="stepper" id="ikStepper">
+      <div class="step on" data-s="1"><b>1</b> Scope</div>
+      <div class="step" data-s="2"><b>2</b> Plan</div>
+      <div class="step" data-s="3"><b>3</b> Ingest</div></div>
+    <div class="samplenote">◆ Guided tour over the <b>synthetic flagship case</b> (ACME Corp). The platforms, window,
+      and suspect are pre-filled with the sample incident — change anything you like. Nothing here touches a network
+      or any real data.</div>
+
+    <div class="istep active" id="ikStep1">
+      <div class="frame">Let’s scope the collection — answer a few questions and I’ll build your
+        evidence-acquisition plan.</div>
+      <div class="sechead">Which platforms were involved?<span class="hint">pre-selected for this incident</span></div>
+      <div class="pgrid" id="ikGrid">${lead.map(p=>ikTile(p,true)).join('')}</div>
+      ${rest.length?`<div class="pgrid" id="ikGridMore" hidden>${rest.map(p=>ikTile(p,false)).join('')}</div>
+      <button class="expander" id="ikMore">+ Show all sources (${rest.length} more)</button>`:''}
+      <div class="sechead">Incident window &amp; suspect<span class="hint">pre-filled — edit if needed</span></div>
+      <div class="winrow">
+        <input id="ikStart" type="date" value="${esc(win[0]||'')}" aria-label="incident start">
+        <span style="color:var(--dim)">→</span>
+        <input id="ikEnd" type="date" value="${esc(win[1]||'')}" aria-label="incident end">
+        <input id="ikSus" value="${esc((ik.suspects||[]).join(', '))}" placeholder="suspect identities (optional)" aria-label="suspects" style="flex:1;min-width:170px"></div>
+      <div class="navrow"><button class="btn" id="ikGen">Generate collection plan →</button></div>
+    </div>
+
+    <div class="istep" id="ikStep2">
+      <div class="frame">Your acquisition plan — exactly what to export from each platform, using the product’s own
+        collection commands. You never write a script.</div>
+      <div id="ikPlan"></div>
+      <div class="navrow"><button class="btn ghost" data-back="1">← Back</button>
+        <button class="btn" id="ikToIngest">Next: validate the exports →</button></div>
+    </div>
+
+    <div class="istep" id="ikStep3">
+      <div class="frame">Drop the exports — AgentAutopsy auto-detects the format, validates coverage against your
+        window, and <b>refuses to guess</b> when a file is ambiguous.</div>
+      <div class="drop">Drag a log export here (simulated) — or pick a sample to see detection:
+        <div class="samplebtns" id="ikSamples"></div></div>
+      <div id="ikVal"></div>
+      <div id="ikCov"></div>
+      <div class="navrow"><button class="btn ghost" data-back="2">← Back</button></div>
+    </div>`;
+
+  function goStep(n){
+    [1,2,3].forEach(i=>$('#ikStep'+i).classList.toggle('active', i===n));
+    $('#ikStepper').querySelectorAll('.step').forEach(s=>{
+      const si=+s.dataset.s; s.classList.toggle('on', si===n); s.classList.toggle('done', si<n);});
+    $('#main').scrollTop=0;
+  }
+  // platform toggles (visual only) on both grids
+  $('#view-intake').querySelectorAll('.pchk').forEach(el=>el.addEventListener('click',()=>{
     el.classList.toggle('on'); el.querySelector('.box').textContent=el.classList.contains('on')?'✓':'';}));
-  $('#ikGen').addEventListener('click',()=>{
-    $('#ikPlan').innerHTML=`<pre class="plan">${esc(ik.plan_markdown||'')}</pre>`;
-    $('#ikPlan').scrollIntoView({block:'nearest'});
-  });
+  const moreBtn=$('#ikMore');
+  if(moreBtn) moreBtn.addEventListener('click',()=>{
+    const g=$('#ikGridMore'); g.hidden=!g.hidden;
+    moreBtn.textContent=g.hidden?`+ Show all sources (${rest.length} more)`:'– Hide extra sources';});
+  // wire the simulated-ingest samples
   const samples=(ik.detection_examples||[]);
   $('#ikSamples').innerHTML=samples.map((d,i)=>`<button class="sfile" data-i="${i}">${esc(d.file)}</button>`).join('');
   $('#ikSamples').querySelectorAll('.sfile').forEach(b=>b.addEventListener('click',()=>showDetect(samples[+b.dataset.i])));
+  // step actions
+  $('#ikGen').addEventListener('click',()=>{
+    $('#ikPlan').innerHTML=`<pre class="plan">${esc(ik.plan_markdown||'')}</pre>`; goStep(2);});
+  $('#ikToIngest').addEventListener('click',()=>{
+    goStep(3);
+    if(samples.length) showDetect(samples[0]);   // frictionless: show detection immediately
+  });
+  $('#view-intake').querySelectorAll('[data-back]').forEach(b=>
+    b.addEventListener('click',()=>goStep(+b.dataset.back)));
 };
 function showDetect(d){
   const ik=D.intake||{};
