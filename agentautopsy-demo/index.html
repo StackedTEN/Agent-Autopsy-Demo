@@ -223,6 +223,12 @@
     background:var(--ember);color:#0b0d10;font-size:16px;display:grid;place-items:center;
     box-shadow:0 0 20px rgba(245,158,11,.4);transition:transform .1s}
   .play:hover{transform:scale(1.06)} .play:active{transform:scale(.97)}
+  .play.pulse{animation:playpulse 1.8s ease-in-out infinite}
+  @keyframes playpulse{
+    0%{box-shadow:0 0 0 0 rgba(245,158,11,.55),0 0 20px rgba(245,158,11,.4)}
+    70%{box-shadow:0 0 0 12px rgba(245,158,11,0),0 0 20px rgba(245,158,11,.4)}
+    100%{box-shadow:0 0 0 0 rgba(245,158,11,0),0 0 20px rgba(245,158,11,.4)}}
+  @media(prefers-reduced-motion: reduce){ .play.pulse{animation:none} }
   .scrub{flex:1;display:flex;flex-direction:column;gap:6px}
   .track{position:relative;height:8px;background:var(--panel2);border-radius:6px;cursor:pointer}
   .fill{position:absolute;top:0;left:0;height:100%;border-radius:6px;
@@ -272,7 +278,9 @@
   .node.lit circle{stroke:var(--ember);fill:#231a0d;stroke-width:2.5;filter:url(#glow)}
   .node.tainted circle{stroke:var(--egress);fill:#2a0d12;stroke-width:2.5}
   .node text{fill:var(--dim);font-size:9.5px;text-anchor:middle}
+  .node.dense text{font-size:8px}
   .node.lit text,.node.tainted text{fill:var(--ink)}
+  .graphlegend{fill:var(--faint);font-size:8.5px;text-anchor:middle}
   .edge{stroke:var(--line);stroke-width:1.5;fill:none;opacity:.25;transition:all .35s}
   .edge.lit{stroke:var(--ember);opacity:.85;stroke-width:2;filter:url(#glow)}
   .edge.tainted{stroke:var(--egress);opacity:.95;stroke-width:2.5}
@@ -804,18 +812,47 @@ G.edges.forEach((ed,i)=>{
   edgesG.appendChild(path);
   drawnEdges.push({...ed,el:path,i});
 });
+// Label legibility at high node counts: truncate each label to fit its node spacing,
+// stagger dense layers onto two alternating rows, drop the font in dense layers, and hide
+// labels entirely past a threshold (relying on hover + a small legend). The full identity
+// name is always available via an SVG <title> tooltip. Layout only — highlighting unchanged.
+const SVGNS='http://www.w3.org/2000/svg';
+const CHAR_W=5.8;                       // approx monospace char width at the base font
+const idxInLayer={};
+Object.keys(byLayer).forEach(L=>{ byLayer[L].forEach((n,k)=>idxInLayer[n]=k); });
+const HIDE_THRESHOLD=18;                 // above this many nodes in a layer, labels -> hover only
+function fitLabel(n, room){
+  const max=Math.max(4, Math.min(13, Math.floor(room/CHAR_W)));
+  return n.length>max ? n.slice(0,max-1)+'…' : n;
+}
+let hidAnyLabels=false;
 Object.keys(pos).forEach(n=>{
   const p=pos[n];
-  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-  g.setAttribute('class','node'); g.id='node-'+btoa(n).replace(/=/g,'');
+  const L=layer[n]||0, cnt=byLayer[L].length, spacing=W/(cnt+1);
+  const stagger=(cnt>4 || spacing<70);
+  const dense=(cnt>6 || spacing<48);
+  const g=document.createElementNS(SVGNS,'g');
+  g.setAttribute('class','node'+(dense?' dense':'')); g.id='node-'+btoa(n).replace(/=/g,'');
   g.dataset.name=n;
-  const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  const title=document.createElementNS(SVGNS,'title'); title.textContent=n;  // full name on hover
+  const c=document.createElementNS(SVGNS,'circle');
   c.setAttribute('cx',p.x); c.setAttribute('cy',p.y); c.setAttribute('r',22);
-  const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-  t.setAttribute('x',p.x); t.setAttribute('y',p.y+38);
-  t.textContent = n.length>16?n.slice(0,15)+'…':n;
-  g.appendChild(c); g.appendChild(t); nodesG.appendChild(g);
+  g.appendChild(title); g.appendChild(c);
+  if(cnt<=HIDE_THRESHOLD){
+    const row=stagger?(idxInLayer[n]%2):0;       // alternate rows give labels 2x the room
+    const t=document.createElementNS(SVGNS,'text');
+    t.setAttribute('x',p.x); t.setAttribute('y',p.y+34+row*13);
+    t.textContent=fitLabel(n, stagger?spacing*2:spacing);
+    g.appendChild(t);
+  } else { hidAnyLabels=true; }
+  nodesG.appendChild(g);
 });
+if(hidAnyLabels){
+  const lg=document.createElementNS(SVGNS,'text');
+  lg.setAttribute('class','graphlegend'); lg.setAttribute('x',W/2); lg.setAttribute('y',14);
+  lg.textContent='hover a node for its identity';
+  nodesG.appendChild(lg);
+}
 function nodeEl(n){ return document.getElementById('node-'+btoa(n).replace(/=/g,'')); }
 
 // Cascade taint set
@@ -907,10 +944,10 @@ FIND.forEach(f=>{ if(f.severity==='critical'){ const t=document.createElement('d
   t.className='tick crit'; t.style.left=(f.revealAt/TL.length*100)+'%'; ticks.appendChild(t);} });
 
 render();
-// Respect reduced motion: don't autoplay
-if(!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-  setTimeout(()=>start(), 900);
-}
+// Load paused at step 0 — never autoplay. Pulse the play button to invite the first press,
+// and stop pulsing the moment the user clicks it.
+$('#play').classList.add('pulse');
+$('#play').addEventListener('click', ()=>$('#play').classList.remove('pulse'), {once:true});
 </script>
 </body>
 </html>
