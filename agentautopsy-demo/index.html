@@ -410,7 +410,7 @@ code,pre,pre.plan,pre.outprev,kbd,samp,
   @media(max-width:860px){.ig-svg{min-width:700px}.ig-head{flex-direction:column}.ig-principal{max-width:none}}
 
   /* ===== Reports — pre-baked markdown rendered as a formatted document ===== */
-  #view-reports .md-doc{max-width:760px;font-family:var(--sans);color:var(--ink);font-size:14px;line-height:1.72}
+  .md-doc{max-width:760px;font-family:var(--sans);color:var(--ink);font-size:14px;line-height:1.72}
   .md-doc .md-h1{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin:2px 0 var(--s4);padding-bottom:var(--s3);border-bottom:2px solid var(--line2)}
   .md-doc .md-h2{font-size:16px;font-weight:800;letter-spacing:-.01em;margin:var(--s6) 0 var(--s3);padding-bottom:6px;border-bottom:1px solid var(--line)}
   .md-doc .md-h3{font-size:13px;font-weight:700;color:var(--dim);margin:var(--s5) 0 var(--s2)}
@@ -424,6 +424,8 @@ code,pre,pre.plan,pre.outprev,kbd,samp,
   .md-doc .md-callout{background:#fffbeb;border:1px solid #fde68a;border-left:3px solid var(--med);border-radius:var(--r2);padding:13px 16px;margin:0 0 var(--s4);color:#5c4a18;line-height:1.6;max-width:760px}
   .md-doc .md-callout strong{color:#92400e}
   .md-doc .md-hr{border:none;border-top:1px solid var(--line);margin:var(--s5) 0}
+  .md-doc .md-code{font-family:var(--mono);font-size:12px;line-height:1.62;background:#0f1623;color:#dfe6ee;border:1px solid var(--line2);border-radius:var(--r2);padding:11px 13px;overflow:auto;white-space:pre;margin:0 0 var(--s3);max-width:760px}
+  .md-doc .md-ol{margin:0 0 var(--s3);padding-left:22px;color:#28303c} .md-doc .md-ol li{margin:3px 0;line-height:1.6}
   .md-doc .md-ev{font-family:var(--mono);font-size:.86em;color:#243049;background:rgba(80,105,150,.09);border-radius:3px;padding:.5px 4px;white-space:nowrap}
   .md-doc .md-todo{font-family:var(--sans);font-size:.92em;color:#92400e;background:#fffbeb;border:1px dashed #fcd97a;border-radius:3px;padding:0 5px;font-style:italic}
   .md-doc .md-trunc{font-size:12px;color:var(--faint);font-style:italic;margin-top:var(--s4);padding-top:var(--s3);border-top:1px dashed var(--line)}
@@ -632,7 +634,7 @@ RENDER.intake = function(){
   $('#ikSamples').querySelectorAll('.sfile').forEach(b=>b.addEventListener('click',()=>showDetect(samples[+b.dataset.i])));
   // step actions
   $('#ikGen').addEventListener('click',()=>{
-    $('#ikPlan').innerHTML=`<pre class="plan">${esc(ik.plan_markdown||'')}</pre>`; goStep(2);});
+    $('#ikPlan').innerHTML=`<div class="md-doc">${renderMd(ik.plan_markdown||'')}</div>`; goStep(2);});
   $('#ikToIngest').addEventListener('click',()=>{
     goStep(3);
     if(samples.length) showDetect(samples[0]);   // frictionless: show detection immediately
@@ -1097,9 +1099,9 @@ function initReplay(){
 
 // ===== Reports: render the pre-baked report markdown as a formatted document (presentation only).
 // Tiny inline markdown + JSON renderers — NO external library, NO CDN (air-gap holds). =====
-(function(){
-  if(!D.outputs) return;
-  const escH = s => String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+// Shared inline markdown + JSON renderer (GLOBAL): Reports AND the Collect-evidence plan use
+// it. Tiny — NO external library, NO CDN (air-gap holds).
+const escH = s => String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   // Evidence-only monospace: backtick code, event ids (ev-051), finding ids (F12/A3), ISO
   // timestamps, x.y.z versions, record keys, single-quoted identifiers, dotted/underscored actions.
   const EV=/(`[^`]+`)|(\bev-\d+\b)|(\b[FA]\d{1,3}\b)|(\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:[+\-]\d{2}:\d{2}|Z)?)|(\b\d+\.\d+\.\d+\b)|(\bkb-doc-[\w-]+\b)|('[a-z][\w]*[-:][\w:.\-]*')|(\b[a-z][a-z0-9]*(?:[._][a-z0-9]{2,})+\b)/g;
@@ -1118,13 +1120,15 @@ function initReplay(){
     while(i<lines.length){
       const ln=lines[i];
       if(/^\s*$/.test(ln)){i++;continue;}
+      if(/^```/.test(ln)){const b=[];i++;while(i<lines.length&&!/^```/.test(lines[i])){b.push(lines[i]);i++;}i++;out.push('<pre class="md-code">'+escH(b.join('\n'))+'</pre>');continue;}
       if(m=ln.match(/^(#{1,3})\s+(.*)$/)){out.push('<div class="md-h'+m[1].length+'">'+inline(m[2])+'</div>');i++;continue;}
       if(/^>\s?/.test(ln)){const b=[];while(i<lines.length&&/^>\s?/.test(lines[i])){b.push(inline(lines[i].replace(/^>\s?/,'')));i++;}out.push('<div class="md-callout">'+b.join('<br>')+'</div>');continue;}
       if(/^[-*]\s+/.test(ln)){const b=[];while(i<lines.length&&/^[-*]\s+/.test(lines[i])){b.push('<li>'+inline(lines[i].replace(/^[-*]\s+/,''))+'</li>');i++;}out.push('<ul class="md-ul">'+b.join('')+'</ul>');continue;}
+      if(/^\s*\d+\.\s+/.test(ln)){const b=[];while(i<lines.length&&/^\s*\d+\.\s+/.test(lines[i])){b.push('<li>'+inline(lines[i].replace(/^\s*\d+\.\s+/,''))+'</li>');i++;}out.push('<ol class="md-ol">'+b.join('')+'</ol>');continue;}
       if(/^(---+|\*\*\*+)\s*$/.test(ln)){out.push('<hr class="md-hr">');i++;continue;}
       if(/^(…|\.\.\.)\s*\[/.test(ln)){out.push('<div class="md-trunc">'+inline(ln)+'</div>');i++;continue;}
       const b=[];
-      while(i<lines.length&&!/^\s*$/.test(lines[i])&&!/^(#{1,3}\s|>\s?|[-*]\s+|---+\s*$|\*\*\*+\s*$)/.test(lines[i])&&!/^(…|\.\.\.)\s*\[/.test(lines[i])){
+      while(i<lines.length&&!/^\s*$/.test(lines[i])&&!/^```/.test(lines[i])&&!/^(#{1,3}\s|>\s?|[-*]\s+|\s*\d+\.\s+|---+\s*$|\*\*\*+\s*$)/.test(lines[i])&&!/^(…|\.\.\.)\s*\[/.test(lines[i])){
         const raw=lines[i]; const hard=/ {2,}$/.test(raw);
         b.push(inline(raw.replace(/\s+$/,''))+(hard?'<br>':' ')); i++;
       }
@@ -1139,6 +1143,7 @@ function initReplay(){
     h=h.replace(/\b(true|false|null)\b/g,'<span class="b">$1</span>');
     return '<pre class="md-json">'+h+'</pre>';
   }
+(function(){ if(!D.outputs) return;
   RENDER.reports=function(){
     const host=document.querySelector('#view-reports'); if(!host) return;
     host.innerHTML='<div class="vhead"><h1>Reports</h1><span class="sub">Examiner, EU AI Act, and STIX — generated from the evidence.</span></div>'+
